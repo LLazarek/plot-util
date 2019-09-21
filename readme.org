@@ -1,0 +1,12 @@
+Plotting utlities
+
+Usage:
+In the top level of the repo,
+: raco pkg install
+
+Then in code
+: (require plot-util/histogram)
+or
+: (require plot-util/timeline)
+or
+: (require plot-util/data-transform)
