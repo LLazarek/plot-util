@@ -1,14 +1,15 @@
 #lang racket/base
 
-(provide
- group-name?
- category-name?
- category-data?
- grouped-category-data?
+(provide group-name?
+         category-name?
+         category-data?
+         grouped-category-data?
 
- plain-histogram-with-labels
- grouped-category-stacked-histogram
- histogram-stack-with-labels)
+         plain-histogram-with-labels
+         grouped-category-stacked-histogram
+         histogram-stack-with-labels
+
+         plot/labels-angled)
 
 (require plot
          plot/utils
@@ -55,17 +56,6 @@
 (define grouped-category-data? (listof (list/c group-name? category-data?)))
 
 (define plot-renderer-tree? any/c)
-
-(define (plot/labels-angled data
-                            #:title title
-                            #:y-label y-label
-                            #:x-label x-label)
-  (parameterize ([plot-x-tick-label-anchor  'auto]
-                 [plot-x-tick-label-angle   45])
-    (plot data
-          #:title title
-          #:y-label y-label
-          #:x-label x-label)))
 
 (define (label-as-point pos
                         text
@@ -152,3 +142,10 @@
                             #:skip skip
                             #:x-min x-min)
         (map create-label-point data (range (length data)))))
+
+(define plot/labels-angled
+  (make-keyword-procedure
+   (λ (kws kw-args . rest)
+     (parameterize ([plot-x-tick-label-anchor  'auto]
+                    [plot-x-tick-label-angle   45])
+       (keyword-apply plot kws kw-args rest)))))

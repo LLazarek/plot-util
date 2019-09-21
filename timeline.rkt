@@ -110,7 +110,4 @@
 (define plot/timeline (make-keyword-procedure
                        (λ (kws kw-args . rest)
                          (parameterize ([plot-x-ticks (date-ticks)])
-                           (keyword-apply plot kws kw-args rest)))
-                       (λ args
-                         (parameterize ([plot-x-ticks (date-ticks)])
-                           (apply plot args)))))
+                           (keyword-apply plot kws kw-args rest)))))
