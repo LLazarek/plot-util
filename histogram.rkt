@@ -118,7 +118,7 @@
   (->* {grouped-category-data?}
        {#:label-groups? (or/c #f anchor/c 'auto)}
        plot-renderer-tree?)
-  
+
   (for/list ([{group-name category-data*} (in-dict data)]
              [i (in-naturals)])
     (define category-data (car category-data*)) ;; dict wraps 2nd in list
