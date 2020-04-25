@@ -12,6 +12,10 @@
              [x (in-naturals)])
     (list x v)))
 
+;; Line file->list but for strings
+(define (string->list/read str)
+  (with-input-from-string str port->list))
+
 (struct inferred (ticks data)
   #:transparent)
 
@@ -47,7 +51,7 @@
   (add-x-indices (map string->number data)))
 
 [define/provide-simple-inferrer infer-number-pairs
-  [(regexp @pregexp{^\s*(\d+)\s*\d+\s*$})
+  [(regexp @pregexp{^\s*([-+\.\d]+)\s*[-+\.\d]+\s*$})
    #:ticks (plot-x-ticks)
    #:convert convert-number-pair-strings]
   [(list (? number?) (? number?))
@@ -58,13 +62,12 @@
    #:convert (map-match-lambda [(cons a b) (list a b)])]]
 (define (convert-number-pair-strings data)
   (for/list ([line (in-list data)])
-    (define parts (string-split line))
-    (map string->number parts)))
+    (string->list line)))
 
 (define epoch-ts:1990-01-01
   631152001)
 (define/provide-simple-inferrer infer-epoch-timestamps
-  [(regexp @pregexp{^\s*(\d+)\s*\d+\s*$}
+  [(regexp @pregexp{^\s*([-+\.\d]+)\s*[-+\.\d]+\s*$}
            (list _ epoch-ts))
    #:when (>= (string->number epoch-ts) epoch-ts:1990-01-01)
    #:ticks (date-ticks)
@@ -79,7 +82,10 @@
    #:convert (map-match-lambda [(cons a b) (list a b)])])
 
 (define/provide-simple-inferrer infer-name-value-pairs
-  [(regexp @pregexp{^\s*\S+\s+\d+\s*$})
+  [(regexp @pregexp{^\s*\S+\s+[-+\.\d]+\s*$})
+   #:ticks (plot-x-ticks)
+   #:convert convert-name-number-pair-strings]
+  [(regexp (pregexp @~a{^\s*"[^@"\""]+"\s+[-+\.\d]+\s*$}))
    #:ticks (plot-x-ticks)
    #:convert convert-name-number-pair-strings]
   [(cons name (? number?))
@@ -87,6 +93,4 @@
    #:convert (map-match-lambda [(cons a b) (vector a b)])])
 (define (convert-name-number-pair-strings data)
   (for/list ([line (in-list data)])
-    (define parts (string-split line))
-    (vector (first parts)
-            (string->number (second parts)))))
+    (apply vector (string->list/read line))))
