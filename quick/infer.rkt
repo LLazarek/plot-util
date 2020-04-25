@@ -6,6 +6,7 @@
          plot-new-window?)
 
 (require "inferrers.rkt"
+         "../histogram.rkt"
          plot)
 
 (define/contract inferrers
@@ -50,7 +51,8 @@
   (parameterize ([plot-x-ticks x-ticks])
     (do-plot data)))
 
-(define (simple-inferred-plotter renderer)
+(define (simple-inferred-plotter renderer
+                                 #:plot [plot plot])
   (make-keyword-procedure
    (λ (kws kw-args . args)
      (do-inferred-plot
@@ -61,5 +63,7 @@
       (first args)))))
 
 (define plot-lines/infer (simple-inferred-plotter lines))
-(define plot-bars/infer (simple-inferred-plotter discrete-histogram))
 (define plot-points/infer (simple-inferred-plotter points))
+(define plot-bars/infer (simple-inferred-plotter discrete-histogram
+                                                 #:plot plot/labels-angled))
+
