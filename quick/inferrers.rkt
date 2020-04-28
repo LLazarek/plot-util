@@ -62,7 +62,7 @@
    #:convert (map-match-lambda [(cons a b) (list a b)])]]
 (define (convert-number-pair-strings data)
   (for/list ([line (in-list data)])
-    (string->list line)))
+    (string->list/read line)))
 
 (define epoch-ts:1990-01-01
   631152001)
@@ -74,11 +74,11 @@
    #:convert convert-number-pair-strings]
   [(list (? number? epoch-ts) (? number?))
    #:when (>= epoch-ts epoch-ts:1990-01-01)
-   #:ticks (plot-x-ticks)
+   #:ticks (date-ticks)
    #:convert identity]
   [(cons (? number? epoch-ts) (? number?))
    #:when (>= epoch-ts epoch-ts:1990-01-01)
-   #:ticks (plot-x-ticks)
+   #:ticks (date-ticks)
    #:convert (map-match-lambda [(cons a b) (list a b)])])
 
 (define/provide-simple-inferrer infer-name-value-pairs
