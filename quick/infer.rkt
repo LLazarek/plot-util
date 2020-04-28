@@ -9,6 +9,8 @@
          "../histogram.rkt"
          plot)
 
+(define-logger plot-util-inference)
+
 (define/contract inferrers
   (listof inferrer/c)
 
@@ -20,10 +22,21 @@
 ;; Takes the first line of data and tries to infer the format of the data using
 ;; `inferrers`, taking the first one that succeeds.
 (define (infer-data-format data-lines)
+  (define (try-inferrer inferrer)
+    (log-plot-util-inference-info
+     @~a{Trying inferrer @(object-name inferrer)})
+    (inferrer data-lines))
   (define first-inferred
     (for*/first ([inferrer (in-list inferrers)]
-                 [result (in-value (inferrer data-lines))]
+                 [result (in-value (try-inferrer inferrer))]
                  #:when result)
+      (log-plot-util-inference-info
+       @~a{Selected inferrer @(object-name inferrer)})
+      (log-plot-util-inference-debug
+       @~a{
+           Parsed data:
+           @pretty-format[(inferred-data result) #:mode 'write]
+           })
       result))
   (match first-inferred
     [(inferred ticks data)
@@ -33,16 +46,19 @@
                        "Unable to infer data format from input")]))
 
 (define (read/split-data something)
-  (match something
-    [(? path-string? path)
-     #:when (file-exists? path)
-     (file->lines path)]
-    [(? string? data-str)
-     (string-split data-str "\n")]
-    [(? list? data)
-     data]
-    [(? hash? h)
-     (hash->list h)]))
+  (define blank-line? (match-lambda [(regexp @pregexp{^\s*$}) #t]
+                                    [else #f]))
+  (filter-not blank-line?
+              (match something
+                [(? path-string? path)
+                 #:when (file-exists? path)
+                 (file->lines path)]
+                [(? string? data-str)
+                 (string-split data-str "\n")]
+                [(? list? data)
+                 data]
+                [(? hash? h)
+                 (hash->list h)])))
 
 (define (do-inferred-plot do-plot some-kind-of-data)
   (define raw-data (read/split-data some-kind-of-data))
