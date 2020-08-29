@@ -3,6 +3,9 @@
 (provide plot-lines/infer
          plot-bars/infer
          plot-points/infer
+
+         simple-inferred-plotter
+
          plot-new-window?)
 
 (require "inferrers.rkt"
@@ -68,14 +71,16 @@
     (do-plot data)))
 
 (define (simple-inferred-plotter renderer
-                                 #:plot [plot plot])
+                                 #:plot [plot plot]
+                                 #:extra [extra-renderer-trees empty])
   (make-keyword-procedure
    (λ (kws kw-args . args)
      (do-inferred-plot
       (λ (data) (keyword-apply plot
                                kws
                                kw-args
-                               (list (renderer data))))
+                               (list (list* (renderer data)
+                                            extra-renderer-trees))))
       (first args)))))
 
 (define plot-lines/infer (simple-inferred-plotter lines))
