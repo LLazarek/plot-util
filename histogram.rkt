@@ -9,7 +9,9 @@
          grouped-category-stacked-histogram
          histogram-stack-with-labels
 
-         plot/labels-angled)
+         make-angled-label-plotter
+         plot/labels-angled
+         discrete-histogram/colors)
 
 (require plot
          plot/utils
@@ -21,7 +23,7 @@
          racket/match
          racket/math)
 
-;; ==================== Stacked histograp illustration ====================
+;; ==================== Stacked histogram illustration ====================
 ;; Data:
 ;; '((group-A ((category-a 4)
 ;;             (category-b 7)
@@ -143,9 +145,34 @@
                             #:x-min x-min)
         (map create-label-point data (range (length data)))))
 
-(define plot/labels-angled
+(define (make-angled-label-plotter plot)
   (make-keyword-procedure
    (λ (kws kw-args . rest)
-     (parameterize ([plot-x-tick-label-anchor  'auto]
+     (parameterize ([plot-x-tick-label-anchor  'top-right]
                     [plot-x-tick-label-angle   45])
        (keyword-apply plot kws kw-args rest)))))
+
+(define plot/labels-angled
+  (make-angled-label-plotter plot))
+
+;; If `color-seq` has fewer colors than there are bars in the data, the colors
+;; will be recycled.
+;; Signature:
+;; ((listof color?) . -> . 2d-renderer-function?)
+;; where
+;; - color? : anything plot recognizes as a color
+;; - renderer2d-maker? is a function like `discrete-histogram`,
+;;   which produces a renderer2d?
+(define (discrete-histogram/colors color-seq)
+  (make-keyword-procedure
+   (λ (kws kw-args data)
+     (for/list ([bar-info data]
+                [color (in-cycle (in-list color-seq))]
+                [i (in-naturals)])
+       (keyword-apply discrete-histogram
+                      kws
+                      kw-args
+                      ;; wrap it twice because this is `apply`
+                      (list (list bar-info))
+                      #:color color
+                      #:x-min i)))))
