@@ -50,8 +50,8 @@
 (define (convert-single-number-strings data)
   (add-x-indices (map string->number data)))
 
-[define/provide-simple-inferrer infer-number-pairs
-  [(regexp @pregexp{^\s*([-+\.\d]+)\s*[-+\.\d]+\s*$})
+(define/provide-simple-inferrer infer-number-pairs
+  [(regexp @pregexp{^\s*([-+\.\d]+)\s+[-+\.\d]+\s*$})
    #:ticks (plot-x-ticks)
    #:convert convert-number-pair-strings]
   [(list (? number?) (? number?))
@@ -59,7 +59,7 @@
    #:convert identity]
   [(cons (? number?) (? number?))
    #:ticks (plot-x-ticks)
-   #:convert (map-match-lambda [(cons a b) (list a b)])]]
+   #:convert (map-match-lambda [(cons a b) (list a b)])])
 (define (convert-number-pair-strings data)
   (for/list ([line (in-list data)])
     (string->list/read line)))
