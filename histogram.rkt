@@ -11,7 +11,8 @@
 
          make-angled-label-plotter
          plot/labels-angled
-         discrete-histogram/colors)
+         discrete-histogram/colors
+         two-sided-histogram)
 
 (require plot
          plot/utils
@@ -71,17 +72,27 @@
 (define/contract (histogram-stack-with-labels group-name
                                               points
                                               #:x-min [x-min 0]
-                                              #:label? [label?/anchor #f])
+                                              #:label-groups? [label-groups? #t]
+                                              #:label-total? [label-total?/anchor #f]
+                                              #:invert? [invert? #f]
+                                              #:common-legend? [common-legend? #f])
   (->* {group-name? category-data?}
        {#:x-min natural?
-        #:label? (or/c #f anchor/c 'auto)}
+        #:label-total? (or/c #f anchor/c 'auto)
+        #:label-groups? boolean?
+        #:invert? boolean?
+        #:common-legend? boolean?}
        plot-renderer-tree?)
 
   (define histogram-stack
     (stacked-histogram (list (vector group-name
                                      (list->vector
                                       (map second points))))
-                       #:x-min x-min))
+                       #:x-min x-min
+                       #:invert? invert?
+                       #:labels (if common-legend?
+                                    (map first points)
+                                    '(#f))))
   (define-values (subcategory-labels total-category-amount)
     (for/fold ([labels empty]
                [last-subcategory-height 0])
@@ -96,19 +107,27 @@
       (values (cons label labels)
               this-subcategory-height)))
   (list histogram-stack
-        subcategory-labels
-        (if label?/anchor
+        (if label-groups?
+            subcategory-labels
+            empty)
+        (if label-total?/anchor
             (label-as-point (vector (+ 0.5 x-min)
                                     total-category-amount)
                             #;(format "~a: ~a" group-name total-category-amount)
                             (~a total-category-amount)
-                            #:anchor label?/anchor)
+                            #:anchor label-total?/anchor)
             empty)))
 
 (define/contract (grouped-category-stacked-histogram data
-                                                     #:label-groups? [label-groups?/anchor #f])
+                                                     #:label-groups? [label-groups? #t]
+                                                     #:label-total? [label-total?/anchor #f]
+                                                     #:invert? [invert? #f]
+                                                     #:common-legend? [common-legend? #t])
   (->* {grouped-category-data?}
-       {#:label-groups? (or/c #f anchor/c 'auto)}
+       {#:label-groups? boolean?
+        #:label-total? (or/c #f anchor/c 'auto)
+        #:invert? boolean?
+        #:common-legend? boolean?}
        plot-renderer-tree?)
 
   (for/list ([{group-name category-data*} (in-dict data)]
@@ -116,7 +135,10 @@
     (define category-data (car category-data*)) ;; dict wraps 2nd in list
     (histogram-stack-with-labels group-name category-data
                                  #:x-min i
-                                 #:label? label-groups?/anchor)))
+                                 #:label-groups? label-groups?
+                                 #:label-total? label-total?/anchor
+                                 #:invert? invert?
+                                 #:common-legend? (and common-legend? (= i 0)))))
 
 (define/contract (plain-histogram-with-labels data
                                               #:label [label #f]
@@ -145,11 +167,11 @@
                             #:x-min x-min)
         (map create-label-point data (range (length data)))))
 
-(define (make-angled-label-plotter plot)
+(define (make-angled-label-plotter plot [angle 45])
   (make-keyword-procedure
    (λ (kws kw-args . rest)
      (parameterize ([plot-x-tick-label-anchor  'top-right]
-                    [plot-x-tick-label-angle   45])
+                    [plot-x-tick-label-angle   angle])
        (keyword-apply plot kws kw-args rest)))))
 
 (define plot/labels-angled
@@ -176,3 +198,70 @@
                       (list (list bar-info))
                       #:color color
                       #:x-min i)))))
+
+;; This function generates histograms that look like this:
+;;
+;; |                         +-------+
+;; |                         |       |
+;; |             +-------+   |       |
+;; |  +------+   |       |   |       |
+;; |  |      |   |       |   |       |
+;; |  |      |   |       |   |       |
+;; |  |      |   |       |   |       |
+;; |  |      |   |       |   |       |
+;; |  |      |   |       |   |       |
+;; +--+------+---+-------+---+-------+--------
+;; |  |......|   |.......|   |.......|
+;; |  |......|   |.......|   +-------+
+;; |  +------+   |.......|
+;; |             |.......|
+;; |             +-------+
+;; |
+;; |
+;; |
+;; |
+;; +-------------------------------------------
+;;      A           B           C
+;;
+;; From data like '((A 3 2) (B 3.5 3) (C 4 1))
+(define/contract (two-sided-histogram data
+                                      #:top-color [top-color (rectangle-color)]
+                                      #:bot-color [bot-color (rectangle-color)]
+                                      #:gap [gap (discrete-histogram-gap)]
+                                      #:skip [skip (discrete-histogram-skip)]
+                                      #:add-ticks? [add-ticks? #t])
+  ({(listof (list/c any/c real? real?))}
+   {#:top-color any/c
+    #:bot-color any/c
+    #:gap any/c
+    #:skip any/c
+    #:add-ticks? boolean?}
+   . ->* .
+   list?)
+  (list (discrete-histogram (map (match-lambda [(list name top _) (list name top)])
+                                 data)
+                            #:color top-color
+                            #:gap gap
+                            #:skip skip
+                            #:add-ticks? add-ticks?)
+        ;; lltodo: this is a workaround for a bug with discrete-histogram
+        ;; This doesn't work:
+        #;(plot (list (discrete-histogram '((a 5) (b 3)))
+                         (discrete-histogram '((a -2) (b -4)))
+                         (x-axis))
+                   #:y-min -5)
+        ;; while this does:
+        #;(plot (list (discrete-histogram '((a 5) (b 3)))
+                         (discrete-histogram '((a -2)) #:x-min 0)
+                         (discrete-histogram '((b -4)) #:x-min 1)
+                         (x-axis))
+                   #:y-min -5)
+        (for/list ([bar-sides (in-list data)]
+                   [i (in-naturals)])
+          (match-define (list name _ bottom) bar-sides)
+          (discrete-histogram `((,name ,(- bottom)))
+                              #:x-min i
+                              #:color bot-color
+                              #:gap gap
+                              #:skip skip
+                              #:add-ticks? add-ticks?))))
