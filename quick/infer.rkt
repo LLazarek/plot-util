@@ -1,5 +1,8 @@
 #lang at-exp racket
 
+;; todo: check out https://docs.racket-lang.org/graphite/index.html
+;; can it do some or all of this?
+
 (provide plot-lines/infer
          plot-bars/infer
          plot-points/infer
