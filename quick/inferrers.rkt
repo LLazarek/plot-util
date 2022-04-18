@@ -88,9 +88,18 @@
   [(regexp (pregexp @~a{^\s*"[^@"\""]+"\s+[-+\.\d]+\s*$}))
    #:ticks (plot-x-ticks)
    #:convert convert-name-number-pair-strings]
+  [(regexp @pregexp{^\s*[-+\.\d]+\s+\S+\s*$})
+   #:ticks (plot-x-ticks)
+   #:convert convert-number-name-pair-strings]
+  [(regexp (pregexp @~a{^\s*[-+\.\d]+\s+"[^@"\""]+"\s*$}))
+   #:ticks (plot-x-ticks)
+   #:convert convert-number-name-pair-strings]
   [(cons name (? number?))
    #:ticks (plot-x-ticks)
    #:convert (map-match-lambda [(cons a b) (vector a b)])])
 (define (convert-name-number-pair-strings data)
   (for/list ([line (in-list data)])
     (apply vector (string->list/read line))))
+(define (convert-number-name-pair-strings data)
+  (map (match-lambda [(vector a b) (vector b a)])
+       (convert-name-number-pair-strings data)))
